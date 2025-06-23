@@ -1,0 +1,38 @@
+A:
+  aliases: []
+  parents: []
+A1:
+  aliases: []
+  parents:
+  - A
+A2:
+  aliases: []
+  parents:
+  - A
+A2.1:
+  aliases: []
+  parents:
+  - A2
+A2.2:
+  aliases: []
+  parents:
+  - A2
+A2.2.1:
+  aliases: []
+  parents:
+  - A2.2
+A2.2.2:
+  aliases: []
+  parents:
+  - A2.2
+B:
+  aliases: []
+  parents: []
+B1:
+  aliases: []
+  parents:
+  - B
+B2:
+  aliases: []
+  parents:
+  - B
