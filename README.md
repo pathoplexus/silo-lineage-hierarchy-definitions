@@ -11,11 +11,11 @@ The expected file format is documented here: <https://github.com/GenSpectrum/LAP
 When making changes to lineage definitions, please ensure that:
 
 - You use the short organism name as used in Pathoplexus urls
-- You name each lineage file `lineage.yaml` and put it in a folder with the timestamp of the corresponding Nextclade release. That's because lineage definitions may change over time. The timestamp ensures we can easily track which Nextclade release a lineage definition corresponds to.
+- You name each lineage file `lineages.yaml` and put it in a folder with the timestamp of the corresponding Nextclade release. That's because lineage definitions may change over time. The timestamp ensures we can easily track which Nextclade release a lineage definition corresponds to.
 - Before you remove or modify a file here, ensure it is not used on Pathoplexus (and Loculus) anymore. We currently reference these definitions in:
   - Pathoplexus values.yaml under `.lineageSystemDefinitions`: <https://github.com/pathoplexus/pathoplexus/blob/main/loculus_values/values.yaml>
   - Loculus values.yaml under `.lineageSystemDefinitions`: <https://github.com/loculus-project/loculus/blob/main/kubernetes/loculus/values.yaml>
-- For multi-segmented/multi-pathogen organisms, add an extra folder level for the segment/pathogen short name under the organism, e.g. `cchf/S/2025-09-12--03-01-02Z/lineage.yaml`
+- For multi-segmented/multi-pathogen organisms, add an extra folder level for the segment/pathogen short name under the organism, e.g. `cchf/S/2025-09-12--03-01-02Z/lineages.yaml`
 
 It's possible that new Nextclade releases don't change the lineage definitions - in that case we don't need to add a new folder.
 
@@ -25,9 +25,13 @@ Repo layout:
 definitions/
   <organism_short_name>/
     <nextclade_release_timestamp>/
-      lineage.yaml
+      lineages.yaml
   <multi_segmented_organism_short_name>/
     <segment_or_pathogen_short_name>/
       <nextclade_release_timestamp>/
-        lineage.yaml
+        lineages.yaml
 ```
+
+## Notice
+
+Non-timestamped lineage definitions in this repository are deprecated and will be removed at some point in the future. Please use the timestamped definitions instead.
