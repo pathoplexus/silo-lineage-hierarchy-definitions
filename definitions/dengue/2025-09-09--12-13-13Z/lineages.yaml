@@ -336,17 +336,6 @@ unassigned:
   aliases: []
   parents:
     - 1VII
-None:
-  aliases: []
-  parents: []
-
-Outgroup:
-  aliases: []
-  parents: []
-
-unassigned:
-  aliases: []
-  parents: []
 
 # Genotype roots
 2I:
@@ -709,17 +698,6 @@ unassigned:
   aliases: []
   parents:
     - 2V_A
-None:
-  aliases: []
-  parents: []
-
-Outgroup:
-  aliases: []
-  parents: []
-
-unassigned:
-  aliases: []
-  parents: []
 
 # Genotype roots
 3I:
@@ -883,17 +861,6 @@ unassigned:
   aliases: []
   parents:
     - 3III_C.2
-None:
-  aliases: []
-  parents: []
-
-Outgroup:
-  aliases: []
-  parents: []
-
-unassigned:
-  aliases: []
-  parents: []
 
 # Genotype roots
 4I:
