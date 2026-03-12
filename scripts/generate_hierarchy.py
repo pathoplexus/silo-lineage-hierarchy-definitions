@@ -17,18 +17,23 @@ from typing import Any, Dict, List
 
 import yaml
 
+
 def download_repo_zip(repo_url: str, temp_dir: str, lineage_definition_path: str):
     """Download and extract a GitHub repository ZIP file."""
-    subprocess.run([
-        "git",
-        "clone",
-        "--filter=blob:none",
-        "--sparse",
-        repo_url,
-        temp_dir,
-    ])
+    subprocess.run(
+        [
+            "git",
+            "clone",
+            "--filter=blob:none",
+            "--sparse",
+            repo_url,
+            temp_dir,
+        ]
+    )
 
-    subprocess.run(["git", "-C", temp_dir, "sparse-checkout", "set", lineage_definition_path])
+    subprocess.run(
+        ["git", "-C", temp_dir, "sparse-checkout", "set", lineage_definition_path]
+    )
 
 
 def load_lineage_files(lineages_path: Path) -> Dict[str, Any]:
@@ -102,7 +107,12 @@ def convert_to_silo_format(lineages: Dict[str, Any]) -> OrderedDict:
 
 
 def generate_hierarchy_file(
-    organism: str, output_dir: str, lineage_definition_repo: str, lineage_definition_path: str, dataset_tag: str | None = None,
+    organism: str,
+    output_dir: str,
+    lineage_definition_repo: str,
+    lineage_definition_path: str,
+    dataset_tag: str | None = None,
+    add_default_lineages: bool = False,
 ) -> None:
     """Generate hierarchy file for a specific RSV subtype (A or B)."""
 
@@ -111,7 +121,9 @@ def generate_hierarchy_file(
         download_repo_zip(lineage_definition_repo, temp_dir, lineage_definition_path)
 
         print(f"Loading lineage files for {organism}...")
-        lineages = load_lineage_files(Path(os.path.join(temp_dir, lineage_definition_path)))
+        lineages = load_lineage_files(
+            Path(os.path.join(temp_dir, lineage_definition_path))
+        )
 
         print(
             f"Converting {len(lineages)} lineages to silo format with topological sorting..."
@@ -120,9 +132,7 @@ def generate_hierarchy_file(
 
         # Create output directory structure
         if dataset_tag:
-            subtype_dir = os.path.join(
-                output_dir, f"{organism}", dataset_tag
-            )
+            subtype_dir = os.path.join(output_dir, f"{organism}", dataset_tag)
         else:
             subtype_dir = os.path.join(output_dir, f"{organism}")
         os.makedirs(subtype_dir, exist_ok=True)
@@ -141,6 +151,10 @@ def generate_hierarchy_file(
                         f.write(f"  - {parent}\n")
                 else:
                     f.write(f"  parents: []\n")
+
+            if add_default_lineages:
+                f.write(f"None:\n  aliases: []\n  parents: []\n")
+                f.write(f"unassigned:\n  aliases: []\n  parents: []\n")
 
         print(f"Generated hierarchy file: {output_file}")
 
@@ -173,11 +187,23 @@ def main():
         "--dataset-tag",
         help="Dataset tag to organize files in subfolders (e.g., nextclade dataset tag)",
     )
+    parser.add_argument(
+        "--add-default-lineages",
+        action="store_true",
+        help="Add default 'None' and 'unassigned' lineages to the hierarchy",
+    )
 
     args = parser.parse_args()
 
     try:
-        generate_hierarchy_file(args.organism, args.output_dir, args.lineage_definition_repo, args.lineage_definition_path, args.dataset_tag)
+        generate_hierarchy_file(
+            args.organism,
+            args.output_dir,
+            args.lineage_definition_repo,
+            args.lineage_definition_path,
+            args.dataset_tag,
+            args.add_default_lineages,
+        )
 
         print(f"✅ Hierarchy generation completed successfully for {args.organism}!")
 
