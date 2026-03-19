@@ -16,6 +16,7 @@ When making changes to lineage definitions, please ensure that:
   - Pathoplexus values.yaml under `.lineageSystemDefinitions`: <https://github.com/pathoplexus/pathoplexus/blob/main/loculus_values/values.yaml>
   - Loculus values.yaml under `.lineageSystemDefinitions`: <https://github.com/loculus-project/loculus/blob/main/kubernetes/loculus/values.yaml>
 - For multi-segmented/multi-pathogen organisms, add an extra folder level for the segment/pathogen short name under the organism, e.g. `cchf/S/2025-09-12--03-01-02Z/lineages.yaml`
+- Only add new timestamped definitions when something changes to avoid unnecessary duplications.
 
 It's possible that new Nextclade releases don't change the lineage definitions - in that case we don't need to add a new folder.
 
