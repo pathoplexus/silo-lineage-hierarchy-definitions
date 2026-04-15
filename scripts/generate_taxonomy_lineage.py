@@ -51,10 +51,10 @@ def fetch_sublineage(db_conn: sqlite3.Connection, root: int):
 def convert_to_silo_format(sublineage, root_id, root_label):
     silo_hierarchy = dict()
     for tax_id, data in sublineage.items():
-        aliases = data["scientific_name"] if data["tax_id"] != root_id else root_label
+        aliases = root_label if data["tax_id"] == root_id else []
         parent = data["parent_id"]
         silo_hierarchy[tax_id] = {
-            "aliases": [aliases],
+            "aliases": [aliases] if aliases else [],
             "parents": [parent] if parent else [],
         }
     return silo_hierarchy
@@ -100,6 +100,11 @@ def main():
 
     if len(args.roots) != len(args.labels):
         raise ValueError("Got a different number of roots and labels")
+    if len(set(args.roots)) != len(args.roots) or len(set(args.labels)) != len(
+        args.labels
+    ):
+        raise ValueError("Labels or roots were not unique")
+
     roots = [
         {"tax_id": root, "label": label} for root, label in zip(args.roots, args.labels)
     ]
