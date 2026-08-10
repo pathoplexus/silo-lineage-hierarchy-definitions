@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Generate RSV hierarchy definition YAML files from RSV lineage designation repositories.
+Generate hierarchy definition YAML files from lineage designation repositories.
 
-This script downloads the latest lineage designation files from the RSV lineage repositories
+This script downloads the latest lineage designation files from the lineage repositories
 and converts them into the silo hierarchy format used by this project.
 """
 
@@ -10,44 +10,35 @@ import argparse
 import os
 import sys
 import tempfile
-import zipfile
+import subprocess
 from collections import OrderedDict, defaultdict
 from pathlib import Path
 from typing import Any, Dict, List
 
-import requests
 import yaml
 
 
-def download_repo_zip(repo_url: str, temp_dir: str) -> str:
-    """Download a GitHub repository as a ZIP file and extract it."""
-    zip_url = f"{repo_url}/archive/refs/heads/main.zip"
-    response = requests.get(zip_url)
-    response.raise_for_status()
+def download_repo_zip(repo_url: str, temp_dir: str, lineage_definition_path: str):
+    """Download and extract a GitHub repository ZIP file."""
+    subprocess.run(
+        [
+            "git",
+            "clone",
+            "--filter=blob:none",
+            "--sparse",
+            repo_url,
+            temp_dir,
+        ]
+    )
 
-    zip_path = os.path.join(temp_dir, "repo.zip")
-    with open(zip_path, "wb") as f:
-        f.write(response.content)
-
-    with zipfile.ZipFile(zip_path, "r") as zip_ref:
-        zip_ref.extractall(temp_dir)
-
-    # Find the extracted directory (it will have a name like "lineage-designation-A-main")
-    extracted_dirs = [
-        d
-        for d in os.listdir(temp_dir)
-        if os.path.isdir(os.path.join(temp_dir, d)) and d != "__pycache__"
-    ]
-    if not extracted_dirs:
-        raise ValueError("No extracted directory found")
-
-    return os.path.join(temp_dir, extracted_dirs[0])
+    subprocess.run(
+        ["git", "-C", temp_dir, "sparse-checkout", "set", lineage_definition_path]
+    )
 
 
-def load_lineage_files(lineages_dir: str) -> Dict[str, Any]:
+def load_lineage_files(lineages_path: Path) -> Dict[str, Any]:
     """Load all lineage YAML files from a directory."""
     lineages = {}
-    lineages_path = Path(lineages_dir) / "lineages"
 
     if not lineages_path.exists():
         raise ValueError(f"Lineages directory not found: {lineages_path}")
@@ -116,17 +107,23 @@ def convert_to_silo_format(lineages: Dict[str, Any]) -> OrderedDict:
 
 
 def generate_hierarchy_file(
-    subtype: str, output_dir: str, dataset_tag: str | None = None
+    organism: str,
+    output_dir: str,
+    lineage_definition_repo: str,
+    lineage_definition_path: str,
+    dataset_tag: str | None = None,
+    add_default_lineages: bool = False,
 ) -> None:
     """Generate hierarchy file for a specific RSV subtype (A or B)."""
-    repo_url = f"https://github.com/rsv-lineages/lineage-designation-{subtype}"
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        print(f"Downloading RSV-{subtype} lineage data from {repo_url}...")
-        extracted_dir = download_repo_zip(repo_url, temp_dir)
+        print(f"Downloading {organism} lineage data from {lineage_definition_repo}...")
+        download_repo_zip(lineage_definition_repo, temp_dir, lineage_definition_path)
 
-        print(f"Loading lineage files for RSV-{subtype}...")
-        lineages = load_lineage_files(extracted_dir)
+        print(f"Loading lineage files for {organism}...")
+        lineages = load_lineage_files(
+            Path(os.path.join(temp_dir, lineage_definition_path))
+        )
 
         print(
             f"Converting {len(lineages)} lineages to silo format with topological sorting..."
@@ -135,11 +132,9 @@ def generate_hierarchy_file(
 
         # Create output directory structure
         if dataset_tag:
-            subtype_dir = os.path.join(
-                output_dir, f"rsv-{subtype.lower()}", dataset_tag
-            )
+            subtype_dir = os.path.join(output_dir, f"{organism}", dataset_tag)
         else:
-            subtype_dir = os.path.join(output_dir, f"rsv-{subtype.lower()}")
+            subtype_dir = os.path.join(output_dir, f"{organism}")
         os.makedirs(subtype_dir, exist_ok=True)
 
         # Write hierarchy file
@@ -157,12 +152,16 @@ def generate_hierarchy_file(
                 else:
                     f.write(f"  parents: []\n")
 
+            if add_default_lineages:
+                f.write(f"None:\n  aliases: []\n  parents: []\n")
+                f.write(f"unassigned:\n  aliases: []\n  parents: []\n")
+
         print(f"Generated hierarchy file: {output_file}")
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Generate RSV hierarchy definition YAML files"
+        description="Generate hierarchy definition YAML files"
     )
     parser.add_argument(
         "--output-dir",
@@ -170,26 +169,43 @@ def main():
         help="Output directory for hierarchy files (default: definitions)",
     )
     parser.add_argument(
-        "--subtype",
-        choices=["A", "B", "both"],
-        default="both",
-        help="RSV subtype to process (default: both)",
+        "--organism",
+        default="rsv-a",
+        help="Organism, added to output path (default: rsv-a)",
+    )
+    parser.add_argument(
+        "--lineage-definition-repo",
+        default="https://github.com/rsv-lineages/lineage-designation-A.git",
+        help="URL for the lineage definition repository (default: RSV-A repository)",
+    )
+    parser.add_argument(
+        "--lineage-definition-path",
+        default="lineages",
+        help="Path to the lineage definition files within the repository (default: lineages)",
     )
     parser.add_argument(
         "--dataset-tag",
         help="Dataset tag to organize files in subfolders (e.g., nextclade dataset tag)",
     )
+    parser.add_argument(
+        "--add-default-lineages",
+        action="store_true",
+        help="Add default 'None' and 'unassigned' lineages to the hierarchy",
+    )
 
     args = parser.parse_args()
 
     try:
-        if args.subtype in ["A", "both"]:
-            generate_hierarchy_file("A", args.output_dir, args.dataset_tag)
+        generate_hierarchy_file(
+            args.organism,
+            args.output_dir,
+            args.lineage_definition_repo,
+            args.lineage_definition_path,
+            args.dataset_tag,
+            args.add_default_lineages,
+        )
 
-        if args.subtype in ["B", "both"]:
-            generate_hierarchy_file("B", args.output_dir, args.dataset_tag)
-
-        print("✅ RSV hierarchy generation completed successfully!")
+        print(f"✅ Hierarchy generation completed successfully for {args.organism}!")
 
     except Exception as e:
         print(f"❌ Error: {e}", file=sys.stderr)
